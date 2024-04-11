@@ -1,0 +1,46 @@
+name: reddit
+description: A new Flutter project.
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.1.4 <4.0.0"
+
+dependencies:
+  any_link_preview: ^3.0.1
+  cloud_firestore: ^4.14.0
+  cupertino_icons: ^1.0.2
+  dotted_border: ^2.1.0
+  file_picker: ^8.0.0+1
+  firebase_auth: "4.12.0"
+  firebase_core: ^2.24.2
+  firebase_storage: ^11.6.0
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.10
+  fpdart: ^1.1.0
+  google_sign_in: ^6.1.6
+  routemaster: ^1.0.1
+  shared_preferences: ^2.2.2
+  uuid: ^4.2.2
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^5.1.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/awards/
+    - assets/fonts/
+
+  fonts:
+    - family: MyFlutterApp
+      fonts:
+        - asset: assets/fonts/MyFlutterApp.ttf
