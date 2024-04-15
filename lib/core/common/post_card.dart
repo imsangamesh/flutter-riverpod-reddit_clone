@@ -1,15 +1,189 @@
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:reddit/core/common/error_test.dart';
-import 'package:reddit/core/common/loader.dart';
+import 'package:reddit/core/common/widgets/helper_widgets.dart';
+import 'package:reddit/core/constants/app_text_styles.dart';
+import 'package:reddit/core/constants/colors.dart';
 import 'package:reddit/core/constants/constants.dart';
-import 'package:reddit/features/auth/controller/auth_controller.dart';
-import 'package:reddit/features/community/controller/community_controller.dart';
-import 'package:reddit/features/post/controller/post_controller.dart';
+import 'package:reddit/core/extensions/extensions.dart';
+import 'package:reddit/core/utils/error_text.dart';
+import 'package:reddit/core/utils/nav_utils.dart';
+import 'package:reddit/features/community/community_controller.dart';
+import 'package:reddit/features/community/screens/community_screen.dart';
+import 'package:reddit/features/post/post_comments_screen.dart';
+import 'package:reddit/features/post/post_controller.dart';
+import 'package:reddit/features/profile/profile_view.dart';
 import 'package:reddit/models/post_model.dart';
-import 'package:reddit/theme/pallete.dart';
-import 'package:routemaster/routemaster.dart';
+
+class PostCard extends ConsumerWidget {
+  const PostCard(this.post, {this.isOnCommentsScreen = false, super.key});
+
+  final Post post;
+  final bool isOnCommentsScreen;
+
+  int get totalVotes => post.upVotes.length - post.downVotes.length;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postCntr = ref.read(postControllerProvider.notifier);
+    final user = ref.userModel!;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 3),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.listTile(ref.isDark),
+        borderRadius: BorderRadius.circular(isOnCommentsScreen ? 0 : kBR),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// ---------------------------------- `AVATAR + BASIC INFO`
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundImage: NetworkImage(post.communityProfilePic),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Community Name
+                    InkWell(
+                      onTap: () => NavUtils.to(
+                        context,
+                        CommunityScreen(post.communityName),
+                      ),
+                      child: Text(
+                        'r/${post.communityName}',
+                        style: AppTStyles.body,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // User Name
+                    InkWell(
+                      onTap: () => NavUtils.to(
+                        context,
+                        ProfileScreen(uid: user.uid),
+                      ),
+                      child: Text(
+                        'u/${post.username}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Delete Button
+              ref.watch(getCommunityByNameProvider(post.communityName)).when(
+                    data: (data) {
+                      if (data.mods.contains(user.uid) ||
+                          user.uid == post.uid) {
+                        return IconButton(
+                          onPressed: () =>
+                              postCntr.deletePost(post.id, context),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: AppColors.danger,
+                            size: 25,
+                          ),
+                        );
+                      }
+                      return const SizedBox();
+                    },
+                    error: (e, _) => ErrorText(e.toString()),
+                    loading: Loader.new,
+                  ),
+            ],
+          ),
+          const FullDivider(height: 15),
+          const SizedBox(height: 3),
+
+          /// ---------------------------------- `TITLE`
+          Text(post.title, style: AppTStyles.body),
+          const SizedBox(height: 10),
+
+          /// ---------------------------------- `TEXT - BODY`
+          if (post.type == 'text')
+            Text(
+              post.description ?? '',
+              style: AppTStyles.themeBody(ref.isDark),
+            ),
+
+          /// ---------------------------------- `IMAGE - BODY`
+          if (post.type == 'image')
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                post.link!,
+                width: context.scrW,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+          /// ---------------------------------- `LINK - BODY`
+          if (post.type == 'link')
+            SizedBox(
+              height: 150,
+              width: context.scrW,
+              child: AnyLinkPreview(
+                borderRadius: 8,
+                link: post.link!,
+                displayDirection: UIDirection.uiDirectionHorizontal,
+              ),
+            ),
+          const SizedBox(height: 12),
+          const FullDivider(height: 0),
+
+          /// ---------------------------------- `UPVOTE DOWNVOTE COMMENTS`
+          Row(
+            children: [
+              IconButton(
+                iconSize: 25,
+                onPressed: () => postCntr.upVote(post),
+                icon: Icon(
+                  post.upVotes.contains(user.uid)
+                      ? Icons.thumb_up_alt
+                      : Icons.thumb_up_alt_outlined,
+                ),
+              ),
+              //
+              if (totalVotes != 0)
+                Text(totalVotes.toString(), style: AppTStyles.body),
+              //
+              IconButton(
+                iconSize: 25,
+                onPressed: () => postCntr.downVote(post),
+                icon: Icon(
+                  post.downVotes.contains(user.uid)
+                      ? Icons.thumb_down_alt
+                      : Icons.thumb_down_alt_outlined,
+                ),
+              ),
+              const Spacer(),
+              //
+              TextButton(
+                onPressed: isOnCommentsScreen
+                    ? null
+                    : () => NavUtils.to(context, PostCommentsScreen(post)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.comment_rounded),
+                    const SizedBox(width: 8),
+                    Text('${post.commentCount}', style: AppTStyles.body),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/*
 
 class PostCard extends ConsumerWidget {
   const PostCard(this.post, {super.key});
@@ -295,3 +469,5 @@ class PostCard extends ConsumerWidget {
     );
   }
 }
+
+*/

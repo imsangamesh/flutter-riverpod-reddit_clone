@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class Community {
   Community({
     required this.id,
@@ -20,9 +18,6 @@ class Community {
       mods: (map['mods'] as List).map((e) => e.toString()).toList(),
     );
   }
-
-  factory Community.fromJson(String source) =>
-      Community.fromMap(json.decode(source) as Map<String, dynamic>);
 
   final String id;
   final String name;
@@ -59,8 +54,6 @@ class Community {
       'mods': mods,
     };
   }
-
-  String toJson() => json.encode(toMap());
 
   @override
   String toString() {

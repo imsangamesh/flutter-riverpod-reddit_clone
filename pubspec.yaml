@@ -21,8 +21,8 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.4.10
   fpdart: ^1.1.0
+  get_storage: ^2.1.1
   google_sign_in: ^6.1.6
-  routemaster: ^1.0.1
   shared_preferences: ^2.2.2
   uuid: ^4.2.2
 
@@ -36,11 +36,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
-    - assets/images/awards/
-    - assets/fonts/
-
-  fonts:
-    - family: MyFlutterApp
-      fonts:
-        - asset: assets/fonts/MyFlutterApp.ttf
+    - assets/
+    - assets/awards/

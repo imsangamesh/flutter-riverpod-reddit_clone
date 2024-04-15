@@ -1,136 +1,128 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:reddit/core/common/error_test.dart';
-import 'package:reddit/core/common/loader.dart';
 import 'package:reddit/core/common/post_card.dart';
-import 'package:reddit/features/auth/controller/auth_controller.dart';
-import 'package:reddit/features/community/controller/community_controller.dart';
+import 'package:reddit/core/common/widgets/helper_widgets.dart';
+import 'package:reddit/core/constants/app_text_styles.dart';
+import 'package:reddit/core/constants/constants.dart';
+import 'package:reddit/core/extensions/extensions.dart';
+import 'package:reddit/core/utils/error_text.dart';
+import 'package:reddit/core/utils/nav_utils.dart';
+import 'package:reddit/features/community/community_controller.dart';
+import 'package:reddit/features/community/screens/mod_tools_screen.dart';
 import 'package:reddit/models/community_model.dart';
-import 'package:routemaster/routemaster.dart';
 
 class CommunityScreen extends ConsumerWidget {
-  const CommunityScreen(this.name, {super.key});
+  const CommunityScreen(this.communityName, {super.key});
 
-  final String name;
-
-  void navigateToModTools(BuildContext context) {
-    Routemaster.of(context).push('/mod-tools/$name');
-  }
-
-  void joinCommunity(WidgetRef ref, Community community, BuildContext context) {
-    ref
-        .read(communityControllerProvider.notifier)
-        .joinCommunity(community, context);
-  }
+  final String communityName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProvider)!;
-    final isGuest = !ref.watch(userProvider)!.isAuthenticated;
+    final uid = ref.userModel!.uid;
+    final communityCntr = ref.watch(communityControllerProvider.notifier);
+    const topHeaderHeight = kBannerHeight + 50;
 
-    return Scaffold(
-      body: ref.watch(getCommunityByNameProvider(name)).when(
-            data: (community) => NestedScrollView(
-              headerSliverBuilder: (_, __) {
-                return [
-                  SliverAppBar(
-                    floating: true,
-                    snap: true,
-                    expandedHeight: 150,
-                    flexibleSpace: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Image.network(
-                            community.banner,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: CircleAvatar(
-                            backgroundImage: NetworkImage(community.avatar),
-                            radius: 35,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Text(
-                              'r/${community.name}',
-                              style: const TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (!isGuest) ...[
-                              if (community.mods.contains(user.uid))
-                                OutlinedButton(
-                                  onPressed: () => navigateToModTools(context),
-                                  style: ElevatedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                  ),
-                                  child: const Text('Mod Tools'),
-                                )
-                              else
-                                OutlinedButton(
-                                  onPressed: () =>
-                                      joinCommunity(ref, community, context),
-                                  style: ElevatedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    community.members.contains(user.uid)
-                                        ? 'Joined'
-                                        : 'Join',
-                                  ),
-                                ),
-                            ],
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text('${community.members.length} members'),
-                        ),
-                      ]),
-                    ),
-                  ),
-                ];
-              },
-              body: ref.watch(getCommunityPostsProvider(name)).when(
-                    data: (posts) {
-                      return ListView.builder(
-                        itemCount: posts.length,
-                        itemBuilder: (context, i) {
-                          final post = posts[i];
-                          return PostCard(post);
-                        },
-                      );
-                    },
-                    error: (error, _) => ErrorText(error.toString()),
-                    loading: Loader.new,
-                  ),
+    Stack topHeader(Community community) {
+      return Stack(
+        children: [
+          /// ----------------------------- `BANNER`
+          const SizedBox(height: topHeaderHeight),
+          Container(
+            width: context.scrW,
+            height: kBannerHeight,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(kBR),
+              image: DecorationImage(
+                image: NetworkImage(community.banner),
+                fit: BoxFit.cover,
+              ),
             ),
-            error: (error, _) => ErrorText(error.toString()),
-            loading: () => const Loader(),
           ),
+
+          /// ----------------------------- `AVATAR`
+          Positioned(
+            bottom: 0,
+            left: 15,
+            child: CircleAvatar(
+              radius: 50,
+              backgroundImage: NetworkImage(community.avatar),
+            ),
+          ),
+
+          /// ----------------------------- `NAME & BUTTON`
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Row(
+              children: [
+                Text(
+                  'r/${community.name}',
+                  style: AppTStyles.primary(ref.isDark),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 35,
+                  child: OutlinedButton(
+                    onPressed: community.mods.contains(uid)
+                        ? () =>
+                            NavUtils.to(context, ModToolsScreen(community.name))
+                        : () => communityCntr.toggleJoinCommunity(
+                              community,
+                              context,
+                            ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.fromLTRB(13, 5, 13, 5),
+                      textStyle: AppTStyles.caption,
+                    ),
+                    child: community.mods.contains(uid)
+                        ? const Text('Mod Tools')
+                        : community.members.contains(uid)
+                            ? const Text('Joined')
+                            : const Text('Join'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SafeArea(
+      child: Scaffold(
+        body: ref.watch(getCommunityByNameProvider(communityName)).when(
+              data: (community) => Padding(
+                padding: const EdgeInsets.all(10),
+                child: NestedScrollView(
+                  headerSliverBuilder: (_, __) {
+                    return [
+                      SliverAppBar(
+                        expandedHeight: topHeaderHeight,
+                        flexibleSpace: topHeader(community),
+                      ),
+                    ];
+                  },
+                  body:
+                      ref.watch(getCommunityPostsProvider(community.name)).when(
+                            data: (posts) {
+                              return ListView.builder(
+                                padding: const EdgeInsets.only(top: 15),
+                                itemCount: posts.length,
+                                itemBuilder: (context, i) {
+                                  final post = posts[i];
+                                  return PostCard(post);
+                                },
+                              );
+                            },
+                            error: (error, _) => ErrorText(error.toString()),
+                            loading: Loader.new,
+                          ),
+                ),
+              ),
+              error: (error, _) => ErrorText(error.toString()),
+              loading: Loader.new,
+            ),
+      ),
     );
   }
 }
