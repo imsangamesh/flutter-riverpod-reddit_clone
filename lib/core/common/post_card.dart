@@ -12,7 +12,7 @@ import 'package:reddit/features/community/community_controller.dart';
 import 'package:reddit/features/community/screens/community_screen.dart';
 import 'package:reddit/features/post/post_comments_screen.dart';
 import 'package:reddit/features/post/post_controller.dart';
-import 'package:reddit/features/profile/profile_view.dart';
+import 'package:reddit/features/profile/screens/user_profile_screen.dart';
 import 'package:reddit/models/post_model.dart';
 
 class PostCard extends ConsumerWidget {
@@ -65,7 +65,7 @@ class PostCard extends ConsumerWidget {
                     InkWell(
                       onTap: () => NavUtils.to(
                         context,
-                        ProfileScreen(uid: user.uid),
+                        UserProfileScreen(user.uid),
                       ),
                       child: Text(
                         'u/${post.username}',
